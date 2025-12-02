@@ -5,14 +5,36 @@ import { Contact, getInitials } from '../../Services';
 interface ContactListItemProps {
     contact: Contact;
     onPress: (contact: Contact) => void;
+    searchQuery?: string;
+    onLongPress?: (contact: Contact) => void;
 }
 
-export const ContactListItem: React.FC<ContactListItemProps> = ({ contact, onPress }) => {
+export const ContactListItem: React.FC<ContactListItemProps> = ({ contact, onPress, searchQuery, onLongPress }) => {
+
+    const renderHighlightedText = (text: string, query: string) => {
+        if (!query.trim()) {
+            return <Text style={styles.name}>{text}</Text>;
+        }
+
+        const parts = text.split(new RegExp(`(${query})`, 'gi'));
+        return (
+            <Text style={styles.name}>
+                {parts.map((part, index) => 
+                    part.toLowerCase() === query.toLowerCase() ? (
+                        <Text key={index} style={styles.highlight}>{part}</Text>
+                    ) : (
+                        <Text key={index}>{part}</Text>
+                    )
+                )}
+            </Text>
+        );
+    };
 
     return (
         <TouchableOpacity 
             style={styles.container}
             onPress={() => onPress(contact)}
+            onLongPress={() => onLongPress?.(contact)}
         >
             {contact.photo ? (
                 <Image
@@ -24,7 +46,7 @@ export const ContactListItem: React.FC<ContactListItemProps> = ({ contact, onPre
                     <Text style={styles.initials}>{getInitials(contact.name)}</Text>
                 </View>
             )}
-            <Text style={styles.name}>{contact.name}</Text>
+            {renderHighlightedText(contact.name, searchQuery || '')}
         </TouchableOpacity>
     );
 };
@@ -63,5 +85,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: '#333',
+    },
+    highlight: {
+        backgroundColor: '#FFEB3B',
+        fontWeight: '700',
     },
 });

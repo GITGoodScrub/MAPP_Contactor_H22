@@ -1,10 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, SafeAreaView, Alert, Modal } from 'react-native';
+import { View, SectionList, StyleSheet, TouchableOpacity, Text, SafeAreaView, Alert, Modal, ActionSheetIOS, Platform } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Contact, loadAllContacts, searchContacts, saveContact, importOSContacts } from '../Services';
+import { Contact, loadAllContacts, searchContacts, saveContact, importOSContacts, deleteContact } from '../Services';
 import { ContactListItem } from '../components/Contact';
 import { SearchBar } from '../components/SearchBar';
+
+// Helper to group contacts by first letter
+const groupContactsByLetter = (contacts: Contact[]) => {
+    const grouped: { [key: string]: Contact[] } = {};
+    
+    contacts.forEach(contact => {
+        const firstLetter = contact.name.charAt(0).toUpperCase();
+        if (!grouped[firstLetter]) {
+            grouped[firstLetter] = [];
+        }
+        grouped[firstLetter].push(contact);
+    });
+    
+    // Convert to array and sort by letter
+    return Object.keys(grouped)
+        .sort()
+        .map(letter => ({
+            letter,
+            data: grouped[letter]
+        }));
+};
 
 export default function ContactsScreen() {
     const [contacts, setContacts] = useState<Contact[]>([]);
@@ -51,6 +72,79 @@ export default function ContactsScreen() {
             pathname: '/contact-detail',
             params: { contactId: contact.id }
         });
+    };
+
+    // Handle long press on contact (show edit/delete menu)
+    const handleContactLongPress = (contact: Contact) => {
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options: ['Cancel', 'Edit Contact', 'Delete Contact'],
+                    destructiveButtonIndex: 2,
+                    cancelButtonIndex: 0,
+                },
+                (buttonIndex) => {
+                    if (buttonIndex === 1) {
+                        // Edit - go directly to edit mode
+                        router.push({
+                            pathname: '/contact-detail',
+                            params: { contactId: contact.id, autoEdit: 'true' }
+                        });
+                    } else if (buttonIndex === 2) {
+                        // Delete
+                        handleDeleteContact(contact);
+                    }
+                }
+            );
+        } else {
+            // Android fallback
+            Alert.alert(
+                contact.name,
+                'Choose an action',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                        text: 'Edit Contact', 
+                        onPress: () => {
+                            router.push({
+                                pathname: '/contact-detail',
+                                params: { contactId: contact.id, autoEdit: 'true' }
+                            });
+                        }
+                    },
+                    { 
+                        text: 'Delete Contact', 
+                        style: 'destructive',
+                        onPress: () => handleDeleteContact(contact)
+                    },
+                ]
+            );
+        }
+    };
+
+    // Delete contact with confirmation
+    const handleDeleteContact = async (contact: Contact) => {
+        Alert.alert(
+            'Delete Contact',
+            `Are you sure you want to delete ${contact.name}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteContact(contact.id);
+                            await loadContacts();
+                            Alert.alert('Success', 'Contact deleted successfully');
+                        } catch (error) {
+                            console.error('Error deleting contact:', error);
+                            Alert.alert('Error', 'Failed to delete contact');
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     // Navigate to add contact screen
@@ -159,22 +253,40 @@ export default function ContactsScreen() {
                 </TouchableOpacity>
             </Modal>
 
-            <FlatList
-                data={filteredContacts}
+            <SectionList
+                sections={groupContactsByLetter(filteredContacts)}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <ContactListItem 
                         contact={item} 
                         onPress={handleContactPress}
+                        onLongPress={handleContactLongPress}
+                        searchQuery={searchQuery}
                     />
                 )}
+                renderSectionHeader={({ section: { letter } }) => (
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionHeaderText}>{letter}</Text>
+                    </View>
+                )}
                 contentContainerStyle={styles.listContent}
+                stickySectionHeadersEnabled={true}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>
                             {searchQuery ? 'No contacts found' : 'No contacts yet'}
                         </Text>
                     </View>
+                }
+                ListFooterComponent={
+                    filteredContacts.length > 0 ? (
+                        <View style={styles.footerContainer}>
+                            <Text style={styles.footerText}>
+                                {filteredContacts.length} {filteredContacts.length === 1 ? 'contact' : 'contacts'}
+                                {searchQuery && contacts.length !== filteredContacts.length && ` (${contacts.length} total)`}
+                            </Text>
+                        </View>
+                    ) : null
                 }
             />
         </SafeAreaView>
@@ -236,6 +348,18 @@ const styles = StyleSheet.create({
     listContent: {
         flexGrow: 1,
     },
+    sectionHeader: {
+        backgroundColor: '#f5f5f5',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    sectionHeaderText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#007AFF',
+    },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -245,5 +369,15 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: '#999',
+    },
+    footerContainer: {
+        paddingVertical: 16,
+        paddingBottom: 32,
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 14,
+        color: '#999',
+        fontWeight: '500',
     },
 });

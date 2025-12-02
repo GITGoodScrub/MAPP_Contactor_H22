@@ -6,7 +6,7 @@ import { Contact, loadContactById, updateContact, deleteContact, formatPhoneNumb
 import { ContactPhoto, ContactFormField } from '../components/Contact';
 
 export default function ContactDetailScreen() {
-    const { contactId } = useLocalSearchParams<{ contactId: string }>();
+    const { contactId, autoEdit } = useLocalSearchParams<{ contactId: string; autoEdit?: string }>();
     const [contact, setContact] = useState<Contact | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState('');
@@ -35,6 +35,10 @@ export default function ContactDetailScreen() {
                 setEditedName(loadedContact.name);
                 setEditedPhoneNumber(loadedContact.phoneNumber);
                 setEditedPhoto(loadedContact.photo);
+                // Auto-enter edit mode if autoEdit param is present
+                if (autoEdit === 'true') {
+                    setIsEditing(true);
+                }
             }
         } catch (error) {
             console.error('Error loading contact:', error);
