@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView, Text } from 'react-native';
-import { router } from 'expo-router';
-import { Contact, saveContact, generateUUID, validatePhoneNumber, cleanPhoneNumber } from '../Services';
-import { ContactPhoto, ContactFormField } from '../components/Contact';
 import { Ionicons } from '@expo/vector-icons';
+import * as ExpoImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { cleanPhoneNumber, Contact, generateUUID, saveContact, validatePhoneNumber } from '../Services';
+import { ContactFormField, ContactPhoto } from '../components/Contact';
 
 export default function AddContactScreen() {
     const [name, setName] = useState('');
@@ -13,6 +14,27 @@ export default function AddContactScreen() {
 
     const handlePhoneChange = (text: string): void => {
         setPhoneNumber(cleanPhoneNumber(text));
+    };
+
+ 
+    const handleChangePhoto = async () => {
+        const {status} = await ExpoImagePicker.requestMediaLibraryPermissionsAsync()
+
+        if (status !== 'granted') {
+            Alert.alert('Permission required', 'We need access to your photos.');
+            return;
+        }
+        
+        const result = await ExpoImagePicker.launchImageLibraryAsync({
+            mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setPhoto(result.assets[0].uri);
+        }
     };
 
     const handleSave = async () => {
@@ -62,6 +84,7 @@ export default function AddContactScreen() {
                         name={name}
                         size={120}
                         showChangeButton={true}
+                        onChangePress={handleChangePhoto}
                     />
                 </View>
 
