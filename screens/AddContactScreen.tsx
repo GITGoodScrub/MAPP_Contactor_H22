@@ -22,7 +22,7 @@ export default function AddContactScreen() {
         }
 
         if (!validatePhoneNumber(phoneNumber)) {
-            Alert.alert('Error', 'Phone number must be exactly 7 digits');
+            Alert.alert('Error', 'Invalid phone number.');
             return;
         }
 
