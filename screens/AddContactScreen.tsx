@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView, Text } from 'react-native';
 import { router } from 'expo-router';
-import { Contact, saveContact, generateUUID, validatePhoneNumber, cleanPhoneNumber } from '../Services';
+import { Contact, saveContact, generateUUID, validatePhoneNumber, cleanPhoneNumber, formatPhoneNumber, updateContact, findContactByPhoneNumber } from '../Services';
 import { ContactPhoto, ContactFormField } from '../components/Contact';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,12 +22,56 @@ export default function AddContactScreen() {
         }
 
         if (!validatePhoneNumber(phoneNumber)) {
-            Alert.alert('Error', 'Invalid phone number.');
+            Alert.alert('Error', 'Phone number must be exactly 7 digits');
             return;
         }
 
         setIsSaving(true);
         try {
+            // Check if a contact with this phone number already exists
+            const existingContact = await findContactByPhoneNumber(cleanPhoneNumber(phoneNumber));
+
+            if (existingContact) {
+                // Phone number already exists, ask user if they want to rename
+                Alert.alert(
+                    'Contact Already Exists',
+                    `A contact named "${existingContact.name}" already has the number ${formatPhoneNumber(phoneNumber)}. Would you like to rename that contact to "${name.trim()}"?`,
+                    [
+                        {
+                            text: 'Cancel',
+                            style: 'cancel',
+                            onPress: () => setIsSaving(false)
+                        },
+                        {
+                            text: 'Rename',
+                            onPress: async () => {
+                                try {
+                                    // Update the existing contact with the new name
+                                    const updatedContact: Contact = {
+                                        ...existingContact,
+                                        name: name.trim(),
+                                        photo: photo || existingContact.photo
+                                    };
+                                    await updateContact(updatedContact);
+                                    Alert.alert('Success', 'Contact renamed successfully', [
+                                        {
+                                            text: 'OK',
+                                            onPress: () => router.back(),
+                                        },
+                                    ]);
+                                } catch (error) {
+                                    console.error('Error updating contact:', error);
+                                    Alert.alert('Error', 'Failed to rename contact');
+                                    setIsSaving(false);
+                                }
+                            }
+                        }
+                    ]
+                );
+                return;
+            }
+
+            // No duplicate, create new contact
             const newContact: Contact = {
                 id: generateUUID(),
                 name: name.trim(),
