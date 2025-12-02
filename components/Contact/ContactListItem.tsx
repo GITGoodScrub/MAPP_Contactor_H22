@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, Image, StyleSheet, View } from 'react-native';
-import { Contact } from '../../Services';
+import { Contact, getInitials } from '../../Services';
 
 interface ContactListItemProps {
     contact: Contact;
@@ -8,10 +8,6 @@ interface ContactListItemProps {
 }
 
 export const ContactListItem: React.FC<ContactListItemProps> = ({ contact, onPress }) => {
-    const getInitials = (name: string): string => {
-        const parts = name.trim().split(' ').filter(part => part.length > 0);
-        return parts.map(part => part[0]).join('').toUpperCase();
-    };
 
     return (
         <TouchableOpacity 
