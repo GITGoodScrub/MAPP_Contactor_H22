@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import { cleanPhoneNumber, Contact, deleteContact, formatPhoneNumber, loadContactById, updateContact, validatePhoneNumber } from '../Services';
 import { ContactFormField, ContactPhoto } from '../components/Contact';
 
@@ -90,6 +90,19 @@ export default function ContactDetailScreen() {
         }
     };
 
+    const handleCall = async () => {
+        if (!contact) return;
+
+        const phoneUrl = `tel:${contact.phoneNumber}`;
+        const canCall = await Linking.canOpenURL(phoneUrl);
+
+        if (canCall) {
+            await Linking.openURL(phoneUrl);
+        } else {
+            Alert.alert('Error', 'Unable to make phone calls on this device');
+        }
+    };
+
     const handleDelete = () => {
         Alert.alert(
             'Delete Contact',
@@ -159,7 +172,7 @@ export default function ContactDetailScreen() {
             <ScrollView style={styles.scrollView}>
                 <View style={styles.photoSection}>
                     <ContactPhoto 
-                        photo={contact.photo}
+                        photo={isEditing ? editedPhoto : contact.photo}
                         name={isEditing ? editedName : contact.name}
                         size={120}
                         showChangeButton={isEditing}
@@ -210,6 +223,14 @@ export default function ContactDetailScreen() {
                     ) : (
                         <>
                             <TouchableOpacity
+                                style={[styles.button, styles.callButton]}
+                                onPress={handleCall}
+                            >
+                                <Ionicons name="call" size={20} color="#fff" />
+                                <Text style={styles.buttonText}>Call</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
                                 style={[styles.button, styles.editButton]}
                                 onPress={handleEdit}
                             >
@@ -259,6 +280,9 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 8,
         gap: 8,
+    },
+    callButton: {
+        backgroundColor: '#34C759',
     },
     editButton: {
         backgroundColor: '#007AFF',

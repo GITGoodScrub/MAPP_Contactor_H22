@@ -36,7 +36,9 @@ export const ContactPhoto: React.FC<ContactPhotoProps> = ({
             )}
             {showChangeButton && (
                 <TouchableOpacity style={styles.changePhotoButton} onPress={onChangePress}>
-                    <Text style={styles.changePhotoText}>Change Photo</Text>
+                    <Text style={styles.changePhotoText}>
+                        {photo ? 'Change Photo' : 'Add Photo'}
+                    </Text>
                 </TouchableOpacity>
             )}
         </View>
