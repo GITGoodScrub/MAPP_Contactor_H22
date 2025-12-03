@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView, Text } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Contact, loadContactById, updateContact, deleteContact, formatPhoneNumber, validatePhoneNumber, cleanPhoneNumber } from '../Services';
-import { ContactPhoto, ContactFormField } from '../components/Contact';
+import * as ExpoImagePicker from 'expo-image-picker';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { cleanPhoneNumber, Contact, deleteContact, formatPhoneNumber, loadContactById, updateContact, validatePhoneNumber } from '../Services';
+import { ContactFormField, ContactPhoto } from '../components/Contact';
 
 export default function ContactDetailScreen() {
     const { contactId, autoEdit } = useLocalSearchParams<{ contactId: string; autoEdit?: string }>();
@@ -132,6 +133,26 @@ export default function ContactDetailScreen() {
             </SafeAreaView>
         );
     }
+    const handleChangePhoto = async () => {
+        const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (status !== 'granted') {
+            Alert.alert('Permission required', 'We need access to your photos.');
+            return;
+        }
+
+        const result = await ExpoImagePicker.launchImageLibraryAsync({
+            mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+    if (!result.canceled) {
+        setEditedPhoto(result.assets[0].uri);
+    }
+};
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -142,6 +163,7 @@ export default function ContactDetailScreen() {
                         name={isEditing ? editedName : contact.name}
                         size={120}
                         showChangeButton={isEditing}
+                        onChangePress={isEditing ? handleChangePhoto : undefined}
                     />
                 </View>
 
