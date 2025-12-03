@@ -28,6 +28,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Contactor to access your contacts to import them into the app."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
